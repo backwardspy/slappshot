@@ -1,0 +1,17 @@
+-lib heaps
+-lib hxmath
+
+-dce full
+
+-cp src
+-main Main
+
+--each
+
+-lib hlsdl
+-hl build/slappshot-sdl.hl
+
+# --next
+
+# -lib hldx
+# -hl build/slappshot-dx.hl
