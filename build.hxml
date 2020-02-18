@@ -6,6 +6,8 @@
 -cp src
 -main Main
 
+-D windowSize=1280x800
+
 --each
 
 -lib hlsdl
