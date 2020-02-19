@@ -45,6 +45,9 @@ class Main extends hxd.App {
 	var leftArm:Arm;
 	var rightArm:Arm;
 
+	static inline final SLAPP_SOUNDS_COUNT = 16;
+	var slappSounds = new Array<hxd.res.Sound>();
+
 	var ball:Ball;
 
 	var hitstop = new Hitstop();
@@ -54,12 +57,19 @@ class Main extends hxd.App {
 
 	var hitstopTime = 0.1;
 
+	var rand: hxd.Rand = new hxd.Rand(Std.int(Sys.time()));
+
 	override function init() {
 		s2d.scaleMode = h2d.Scene.ScaleMode.LetterBox(1280, 800);
 
 		hxd.Res.initEmbed();
 
 		hxd.Pad.wait(onPad);
+
+		for (i in 0...SLAPP_SOUNDS_COUNT) {
+			var path = 'audio/slap$i.ogg';
+			slappSounds.push(hxd.Res.load(path).toSound());
+		}
 
 		grid = new WarpGrid(hxd.Res.graphics.backdrop_castle.toTile(), s2d);
 
@@ -95,6 +105,7 @@ class Main extends hxd.App {
 			var hit = leftArm.collide(ball);
 			if (hit.collided) {
 				ball.hit(hit.normalX, hit.normalY, hit.power);
+				playSlappSound();
 				lastHitSide = Left;
 				lastHit = hit;
 			}
@@ -104,6 +115,7 @@ class Main extends hxd.App {
 			var hit = rightArm.collide(ball);
 			if (hit.collided) {
 				ball.hit(hit.normalX, hit.normalY, hit.power);
+				playSlappSound();
 				lastHitSide = Right;
 				lastHit = hit;
 			}
@@ -138,6 +150,10 @@ class Main extends hxd.App {
 
 		grid.setPoint(ball.x / s2d.width, ball.y / s2d.height, ball.speedMod / 3);
 		grid.update(dt);
+	}
+
+	function playSlappSound() {
+		slappSounds[rand.random(slappSounds.length)].play();
 	}
 
 	function doMovement(side:Side) {
