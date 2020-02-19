@@ -1,0 +1,4 @@
+enum Side {
+	Left;
+	Right;
+}

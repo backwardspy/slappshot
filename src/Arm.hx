@@ -75,6 +75,10 @@ class Arm extends h2d.Object {
 	var canHit:Bool; // set true when a slap is started, set false again when contacting the ball
 	var hitZoneTimer:Float;
 
+	static inline final MAX_LIVES = 3; // TODO: variable?
+
+	var lives:Int; // depleted by one on each missed ball
+
 	static inline final HITZONE_ACTIVE_TIME = 0.15; // how long the hitzone is alive for after slapping, in seconds
 	static inline final SLAP_ANIM_LENGTH = 0.3; // how long the slap animation is, in seconds
 
@@ -112,6 +116,8 @@ class Arm extends h2d.Object {
 		slappTween = new Tween();
 		slapDirection = SlapDirection.Up;
 		setBend(1);
+
+		lives = MAX_LIVES;
 	}
 
 	public function update(dt:Float) {
@@ -155,6 +161,11 @@ class Arm extends h2d.Object {
 				this.slapDirection = Up;
 				slappTween.init(-1, 1, SLAP_ANIM_LENGTH);
 		}
+	}
+
+	public function hurt():Bool {
+		trace(lives);
+		return --lives <= 0;
 	}
 
 	public function collide(ball:Ball):SlappResult {

@@ -1,8 +1,3 @@
-enum Side {
-	Left;
-	Right;
-}
-
 class Hitstop {
 	public var side(default, null):Side;
 	public var hit(default, null):Arm.SlappResult;
@@ -46,6 +41,7 @@ class Main extends hxd.App {
 	var rightArm:Arm;
 
 	static inline final SLAPP_SOUNDS_COUNT = 16;
+
 	var slappSounds = new Array<hxd.res.Sound>();
 
 	var ball:Ball;
@@ -57,7 +53,7 @@ class Main extends hxd.App {
 
 	var hitstopTime = 0.1;
 
-	var rand: hxd.Rand = new hxd.Rand(Std.int(Sys.time()));
+	var rand:hxd.Rand = new hxd.Rand(Std.int(Sys.time()));
 
 	override function init() {
 		s2d.scaleMode = h2d.Scene.ScaleMode.LetterBox(1280, 800);
@@ -123,7 +119,9 @@ class Main extends hxd.App {
 
 		// we check lasthit to skip updating on the frame we hit the ball
 		if (!hitstop.active && lastHit == null) {
-			ball.bounce(0, 0, s2d.width, s2d.height);
+			var result = ball.bounce(0, 0, s2d.width, s2d.height);
+			if (result.hitSide)
+				hurtArm(result.side);
 			ball.update(dt);
 		}
 
@@ -150,6 +148,23 @@ class Main extends hxd.App {
 
 		grid.setPoint(ball.x / s2d.width, ball.y / s2d.height, ball.speedMod / 3);
 		grid.update(dt);
+	}
+
+	function hurtArm(side:Side) {
+		switch (side) {
+			case Left:
+				var died = leftArm.hurt();
+				if (died) {
+					// TODO: ragdoll left arm
+					// TODO: end game
+				}
+			case Right:
+				var died = rightArm.hurt();
+				if (died) {
+					// TODO: ragdoll right arm
+					// TODO: end game
+				}
+		}
 	}
 
 	function playSlappSound() {

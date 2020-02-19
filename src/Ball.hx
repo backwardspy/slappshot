@@ -1,3 +1,5 @@
+typedef BounceResult = {hitSide:Bool, side:Side};
+
 class Ball extends h2d.Object {
 	var radius:Float;
 
@@ -44,16 +46,23 @@ class Ball extends h2d.Object {
 		speedMod += power / 10;
 	}
 
-	public function bounce(x0:Float, y0:Float, x1:Float, y1:Float) {
+	public function bounce(x0:Float, y0:Float, x1:Float, y1:Float):BounceResult {
+		var result:BounceResult = {hitSide: false, side: null};
 		if (x < x0) {
 			x = x0;
-			if (vx < 0)
+			if (vx < 0) {
+				result.hitSide = true;
+				result.side = Left;
 				vx = -vx;
+			}
 		}
 		if (x >= x1) {
 			x = x1;
-			if (vx > 0)
+			if (vx > 0) {
 				vx = -vx;
+				result.hitSide = true;
+				result.side = Right;
+			}
 		}
 		if (y < y0) {
 			y = y0;
@@ -65,6 +74,8 @@ class Ball extends h2d.Object {
 			if (vy > 0)
 				vy = -vy;
 		}
+
+		return result;
 	}
 
 	public function calculateSpeed() {
