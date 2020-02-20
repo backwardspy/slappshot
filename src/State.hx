@@ -1,5 +1,5 @@
 class State extends h2d.Scene {
-	private var states:StateManager;
+	var states:StateManager;
 
 	public function setStateManager(manager:StateManager) {
 		states = manager;

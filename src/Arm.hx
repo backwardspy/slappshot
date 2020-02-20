@@ -57,7 +57,7 @@ class Tween {
 typedef SlappResult = {collided:Bool, power:Float, normalX:Float, normalY:Float};
 
 class Arm extends h2d.Object {
-	public var slapDirection(default, null):SlapDirection;
+	public var lives(default, null):Int; // depleted by one on each missed ball
 
 	var flipped:Bool;
 
@@ -68,6 +68,8 @@ class Arm extends h2d.Object {
 	var baseX:Float;
 	var baseY:Float;
 
+	var slapDirection:SlapDirection;
+
 	var slappTween:Tween;
 
 	var slappRadius:Float;
@@ -76,8 +78,6 @@ class Arm extends h2d.Object {
 	var hitZoneTimer:Float;
 
 	static inline final MAX_LIVES = 3; // TODO: variable?
-
-	var lives:Int; // depleted by one on each missed ball
 
 	static inline final HITZONE_ACTIVE_TIME = 0.15; // how long the hitzone is alive for after slapping, in seconds
 	static inline final SLAP_ANIM_LENGTH = 0.3; // how long the slap animation is, in seconds
@@ -164,7 +164,6 @@ class Arm extends h2d.Object {
 	}
 
 	public function hurt():Bool {
-		trace(lives);
 		return --lives <= 0;
 	}
 

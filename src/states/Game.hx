@@ -12,6 +12,8 @@ class Game extends State {
 
 	var ball:Ball;
 
+	var logWindow:GameLogWindow;
+
 	var hitstop = new Hitstop();
 	var hitWasActive = false;
 
@@ -22,6 +24,7 @@ class Game extends State {
 	var rand:hxd.Rand = new hxd.Rand(Std.int(Sys.time()));
 
 	public function new() {
+		trace("initialising game state...");
 		super();
 
 		for (i in 0...SLAPP_SOUNDS_COUNT) {
@@ -40,6 +43,10 @@ class Game extends State {
 		ball = new Ball(width / 4, height / 2, hxd.Res.graphics.ball_eye.toTile(), this);
 
 		filter = new h2d.filter.Group([new h2d.filter.Shader(grainShader), new h2d.filter.Shader(new VignetteShader())]);
+
+		logWindow = new GameLogWindow(this);
+
+		trace("game state initialised");
 	}
 
 	public override function update(dt:Float) {
@@ -111,20 +118,27 @@ class Game extends State {
 
 		grid.setPoint(ball.x / width, ball.y / height, ball.speedMod / 3);
 		grid.update(dt);
+
+		trace('update ${Sys.time()}');
+		logWindow.update(dt);
 	}
 
 	function hurtArm(side:Side) {
 		switch (side) {
 			case Left:
 				var died = leftArm.hurt();
+				trace('left arm reduced to ${leftArm.lives} lives');
 				if (died) {
 					// TODO: ragdoll left arm
+					trace("left arm died!");
 					states.replace(new states.GameOver(Right));
 				}
 			case Right:
 				var died = rightArm.hurt();
+				trace('right arm reduced to ${rightArm.lives} lives');
 				if (died) {
 					// TODO: ragdoll right arm
+					trace("right arm died!");
 					states.replace(new states.GameOver(Left));
 				}
 		}
