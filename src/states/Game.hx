@@ -1,8 +1,6 @@
 package states;
 
 class Game extends State {
-	var pad:hxd.Pad;
-
 	var grid:WarpGrid;
 
 	var leftArm:Arm;
@@ -25,8 +23,6 @@ class Game extends State {
 
 	public function new() {
 		super();
-
-		hxd.Pad.wait(onPad);
 
 		for (i in 0...SLAPP_SOUNDS_COUNT) {
 			var path = 'audio/slap$i.ogg';
@@ -139,15 +135,15 @@ class Game extends State {
 	}
 
 	function doMovement(side:Side) {
-		// todo: generalise
+		// TODO: generalise
+		// TODO: remove hardcoded pad indices
 		if (side == Left) {
-			if (this.pad != null) {
-				leftArm.setOffset(this.pad.xAxis * 50, this.pad.yAxis * height * 0.4);
-				leftArm.rotation = this.pad.yAxis * 0.3;
+			var yAxis = Input.getAxis(MoveY, 0);
+			leftArm.setOffset(Input.getAxis(MoveX, 0) * 50, yAxis * height * 0.4);
+			leftArm.rotation = yAxis * 0.3;
 
-				if (this.pad.isPressed(this.pad.config.A)) {
-					leftArm.slapp();
-				}
+			if (Input.getButtonPressed(Slap, 0)) {
+				leftArm.slapp();
 			}
 		} else {
 			rightArm.setOffset(0, Math.sin(Sys.time()) * height * 0.4);
@@ -178,10 +174,5 @@ class Game extends State {
 		p.onEnd = function() {
 			p.remove();
 		}
-	}
-
-	function onPad(pad:hxd.Pad) {
-		if (this.pad == null)
-			this.pad = pad;
 	}
 }
