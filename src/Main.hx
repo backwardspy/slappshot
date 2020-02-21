@@ -2,43 +2,46 @@
  * The heaps app containing the game.
  */
 class Main extends hxd.App {
-	var states:StateManager;
+    static inline final RES_X:Int = 1280;
+    static inline final RES_Y:Int = 800;
 
-	function setupTracing() {
-		// we do this early to capture as many traces as possible
-		var originalTrace = haxe.Log.trace;
+    var states:StateManager;
 
-		@SuppressWarnings("checkstyle:Dynamic")
-		function newTrace(v:Dynamic, ?infos:haxe.PosInfos) {
-			originalTrace(v, infos);
-			GameLog.add(haxe.Log.formatOutput(v, infos));
-		}
+    function setupTracing() {
+        // we do this early to capture as many traces as possible
+        var originalTrace = haxe.Log.trace;
 
-		haxe.Log.trace = newTrace;
-	}
+        @SuppressWarnings("checkstyle:Dynamic")
+        function newTrace(v:Dynamic, ?infos:haxe.PosInfos) {
+            originalTrace(v, infos);
+            GameLog.add(haxe.Log.formatOutput(v, infos));
+        }
 
-	override function init() {
-		setupTracing();
+        haxe.Log.trace = newTrace;
+    }
 
-		Input.init();
+    override function init() {
+        setupTracing();
 
-		s2d.scaleMode = h2d.Scene.ScaleMode.LetterBox(1280, 800);
-		trace('scaleMode set to ${s2d.scaleMode}');
+        Input.init();
 
-		hxd.Res.initEmbed();
-		trace("intialised resource system");
+        s2d.scaleMode = h2d.Scene.ScaleMode.LetterBox(RES_X, RES_Y);
+        trace('scaleMode set to ${s2d.scaleMode}');
 
-		states = new StateManager();
+        hxd.Res.initEmbed();
+        trace("intialised resource system");
 
-		states.addHook(state -> if (state != null) setScene(state));
-		states.push(new states.Game());
-	}
+        states = new StateManager();
 
-	override function update(dt:Float) {
-		states.update(dt);
-	}
+        states.addHook(state -> if (state != null) setScene(state));
+        states.push(new states.Game());
+    }
 
-	static function main() {
-		new Main();
-	}
+    override function update(dt:Float) {
+        states.update(dt);
+    }
+
+    static function main() {
+        new Main();
+    }
 }

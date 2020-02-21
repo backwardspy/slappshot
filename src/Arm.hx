@@ -1,293 +1,185 @@
-// TODO: move the non-arm types into their own files.
-
-/**
- * The direction the arm is moving during a slap.
- */
-enum SlapDirection {
-	up;
-	down;
-}
-
-/**
- * Smoothly interpolates between two values over a given duration.
- */
-class Tween {
-	static inline final EASE_POWER:Int = 5;
-
-	/**
-	 * Whether the tween is currently active or not.
-	 */
-	public var active(default, null):Bool;
-
-	/**
-	 * The value to tween from.
-	 */
-	public var from(default, null):Float;
-
-	/**
-	 * The value to tween to.
-	 */
-	public var to(default, null):Float;
-
-	/**
-	 * The current interpolated value.
-	 */
-	public var value(get, null):Float;
-
-	/**
-	 * The linear progress through the tween's duration.
-	 */
-	public var progress(default, null):Float;
-
-	/**
-	 * How long the tween should take, in seconds.
-	 */
-	public var length(default, null):Float;
-
-	public function new() {
-		from = 0;
-		to = 1;
-		length = 1;
-		progress = 1;
-		active = false;
-	}
-
-	/**
-	 * Initialise the tween, setting it active.
-	 * @param tweenFrom The value to start from.
-	 * @param tweenTo The value to stop on.
-	 * @param tweenLength How long the tween should last, in seconds.
-	 */
-	public function init(tweenFrom:Float, tweenTo:Float, tweenLength:Float) {
-		this.from = tweenFrom;
-		this.to = tweenTo;
-		this.length = tweenLength;
-		progress = 0;
-		active = true;
-	}
-
-	/**
-	 * Updates the tween, setting it inactive if the duration has passed.
-	 * @param dt Delta time.
-	 */
-	public function update(dt:Float) {
-		if (!active) {
-			return;
-		}
-
-		if (progress < length) {
-			progress = Math.min(progress + dt, length);
-		} else {
-			progress = length;
-			active = false;
-		}
-	}
-
-	/**
-	 * Ease the given parameter using a power function.
-	 * @param k The value to ease.
-	 * @return The eased value.
-	 */
-	public function ease(k:Float):Float {
-		return 1 - Math.pow(1 - k, EASE_POWER);
-	}
-
-	function get_value():Float {
-		if (!active) {
-			return to;
-		}
-
-		var k = progress / length;
-		return hxd.Math.lerp(from, to, ease(k));
-	}
-}
-
-/**
- * Result of an arm <=> ball collision
- */
-typedef SlapResult = {collided:Bool, power:Float, normalX:Float, normalY:Float};
-
 /**
  * A player's arm. Used to slap the ball.
  */
 class Arm extends h2d.Object {
-	// TODO: variable?
-	static inline final MAX_LIVES:Int = 3;
+    static inline final MAX_LIVES:Int = 3;
 
-	static inline final HITZONE_ACTIVE_TIME:Float = 0.15;
-	static inline final SLAP_ANIM_LENGTH:Float = 0.3;
+    static inline final HITZONE_ACTIVE_TIME:Float = 0.15;
+    static inline final SLAP_ANIM_LENGTH:Float = 0.3;
 
-	static inline final SLAP_RADIUS:Float = 350.0;
+    static inline final SLAP_RADIUS:Float = 350.0;
 
-	/**
-	 * The number of lives left on this arm. Depleted by one on each missed ball.
-	 */
-	public var lives(default, null):Int;
+    static inline final GFX_SCALE:Int = 2;
 
-	var flipped:Bool;
+    /**
+     * The number of lives left on this arm. Depleted by one on each missed ball.
+     */
+    public var lives(default, null):Int;
 
-	var shoulder:h2d.Bitmap;
-	var elbow:h2d.Bitmap;
-	var wrist:h2d.Bitmap;
+    var flipped:Bool;
 
-	var baseX:Float;
-	var baseY:Float;
+    var shoulder:h2d.Bitmap;
+    var elbow:h2d.Bitmap;
+    var wrist:h2d.Bitmap;
 
-	var slapDirection:SlapDirection;
+    var baseX:Float;
+    var baseY:Float;
 
-	var slapTween:Tween;
+    var slapDirection:SlapDirection;
 
-	var canHit:Bool; // set true when a slap is started, set false again when contacting the ball
-	var hitZoneTimer:Float;
+    var slapTween:Tween;
 
-	public function new(x:Float, y:Float, shoulder:h2d.Tile, elbow:h2d.Tile, wrist:h2d.Tile, scene:h2d.Scene, ?flipped:Bool = false) {
-		super(scene);
+    var canHit:Bool; // set true when a slap is started, set false again when contacting the ball
+    var hitZoneTimer:Float;
 
-		// TODO: load all this from arm config
-		shoulder.dx = -33;
-		shoulder.dy = -32;
+    public function new(x:Float, y:Float, shoulder:h2d.Tile, elbow:h2d.Tile, wrist:h2d.Tile, scene:h2d.Scene, ?flipped:Bool = false) {
+        super(scene);
 
-		elbow.dx = -27;
-		elbow.dy = -15;
+        shoulder.dx = -33;
+        shoulder.dy = -32;
 
-		wrist.dx = -36;
-		wrist.dy = -16;
+        elbow.dx = -27;
+        elbow.dy = -15;
 
-		this.shoulder = new h2d.Bitmap(shoulder, this);
-		this.elbow = new h2d.Bitmap(elbow, this.shoulder);
-		this.wrist = new h2d.Bitmap(wrist, this.elbow);
+        wrist.dx = -36;
+        wrist.dy = -16;
 
-		this.shoulder.setPosition(0, 0);
-		this.elbow.setPosition(99 + shoulder.dx, 31 + shoulder.dy);
-		this.wrist.setPosition(105 + elbow.dx, 14 + elbow.dy);
+        this.shoulder = new h2d.Bitmap(shoulder, this);
+        this.elbow = new h2d.Bitmap(elbow, this.shoulder);
+        this.wrist = new h2d.Bitmap(wrist, this.elbow);
 
-		this.flipped = flipped;
+        this.shoulder.setPosition(0, 0);
+        this.elbow.setPosition(99 + shoulder.dx, 31 + shoulder.dy);
+        this.wrist.setPosition(105 + elbow.dx, 14 + elbow.dy);
 
-		baseX = x;
-		baseY = y;
-		setPosition(x, y);
-		scaleX = 2;
-		scaleY = switch (flipped) {
-			case true: -2;
-			case false: 2;
-		}
+        this.flipped = flipped;
 
-		slapTween = new Tween();
-		slapDirection = up;
-		setBend(1);
+        baseX = x;
+        baseY = y;
+        setPosition(x, y);
+        scaleX = GFX_SCALE;
+        scaleY = switch (flipped) {
+            case true: -GFX_SCALE;
+            case false: GFX_SCALE;
+        }
 
-		lives = MAX_LIVES;
-	}
+        slapTween = new Tween();
+        slapDirection = up;
+        setBend(1);
 
-	/**
-	 * Updates the arm.
-	 * @param dt Delta time
-	 */
-	public function update(dt:Float) {
-		slapTween.update(dt);
-		setBend(slapTween.value * 0.8);
+        lives = MAX_LIVES;
+    }
 
-		if (hitZoneTimer > 0.0) {
-			hitZoneTimer -= dt;
+    /**
+     * Updates the arm.
+     * @param dt Delta time
+     */
+    public function update(dt:Float) {
+        slapTween.update(dt);
+        setBend(slapTween.value * 0.8);
 
-			if (hitZoneTimer < 0.0) {
-				hitZoneTimer = 0.0;
-			}
-		}
-	}
+        if (hitZoneTimer > 0.0) {
+            hitZoneTimer -= dt;
 
-	/**
-	 * Sets the base rotation of the arm (at the shoulder.)
-	 * @param radians The angle to use.
-	 */
-	public function setRotation(radians:Float) {
-		rotation = radians;
-	}
+            if (hitZoneTimer < 0.0) {
+                hitZoneTimer = 0.0;
+            }
+        }
+    }
 
-	/**
-	 * Sets the joint rotation of the arm (at all joints.)
-	 * @param radians The angle to use.
-	 */
-	public function setBend(radians:Float) {
-		shoulder.rotation = radians;
-		elbow.rotation = radians;
-		wrist.rotation = radians;
-	}
+    /**
+     * Sets the base rotation of the arm (at the shoulder.)
+     * @param radians The angle to use.
+     */
+    public function setRotation(radians:Float) {
+        rotation = radians;
+    }
 
-	/**
-	 * Sets the offset of the arm from its root position.
-	 * @param x The amount to offset the X coordinate by.
-	 * @param y The amount to offset the Y coordinate by.
-	 */
-	public function setOffset(x:Float, y:Float) {
-		setPosition(baseX + x, baseY + y);
-	}
+    /**
+     * Sets the joint rotation of the arm (at all joints.)
+     * @param radians The angle to use.
+     */
+    public function setBend(radians:Float) {
+        shoulder.rotation = radians;
+        elbow.rotation = radians;
+        wrist.rotation = radians;
+    }
 
-	/**
-	 * Swing the arm.
-	 */
-	public function slap() {
-		if (slapTween.active) {
-			return;
-		}
+    /**
+     * Sets the offset of the arm from its root position.
+     * @param x The amount to offset the X coordinate by.
+     * @param y The amount to offset the Y coordinate by.
+     */
+    public function setOffset(x:Float, y:Float) {
+        setPosition(baseX + x, baseY + y);
+    }
 
-		canHit = true;
-		hitZoneTimer = HITZONE_ACTIVE_TIME;
+    /**
+     * Swing the arm.
+     */
+    public function slap() {
+        if (slapTween.active) {
+            return;
+        }
 
-		switch (this.slapDirection) {
-			case up:
-				this.slapDirection = down;
-				slapTween.init(1, -1, SLAP_ANIM_LENGTH);
-			case down:
-				this.slapDirection = up;
-				slapTween.init(-1, 1, SLAP_ANIM_LENGTH);
-		}
-	}
+        canHit = true;
+        hitZoneTimer = HITZONE_ACTIVE_TIME;
 
-	/**
-	 * Reduce the arm's lives by one.
-	 * @return Bool Whether the arm died or not.
-	 */
-	public function hurt():Bool {
-		return --lives <= 0;
-	}
+        switch (this.slapDirection) {
+            case up:
+                this.slapDirection = down;
+                slapTween.init(1, -1, SLAP_ANIM_LENGTH);
+            case down:
+                this.slapDirection = up;
+                slapTween.init(-1, 1, SLAP_ANIM_LENGTH);
+        }
+    }
 
-	/**
-	 * Check for a collision between the arm's hitzone and the ball.
-	 * @param ball The ball to check against.
-	 * @return SlapResult A SlapResult containing the collision information.
-	 */
-	public function collide(ball:Ball):SlapResult {
-		var result:SlapResult = {
-			collided: false,
-			power: 0,
-			normalX: 0,
-			normalY: 0,
-		};
+    /**
+     * Reduce the arm's lives by one.
+     * @return Bool Whether the arm died or not.
+     */
+    public function hurt():Bool {
+        return --lives <= 0;
+    }
 
-		if (!canHit || hitZoneTimer <= 0.0) {
-			return result;
-		}
+    /**
+     * Check for a collision between the arm's hitzone and the ball.
+     * @param ball The ball to check against.
+     * @return SlapResult A SlapResult containing the collision information.
+     */
+    public function collide(ball:Ball):SlapResult {
+        var result:SlapResult = {
+            collided: false,
+            power: 0,
+            normalX: 0,
+            normalY: 0,
+        };
 
-		var dy = ball.y - y;
-		var dx = ball.x - x;
-		var distSq = dx * dx + dy * dy;
+        if (canHit && hitZoneTimer > 0) {
+            var distSq = getSquareDistance(ball.x, ball.y, x, y);
 
-		if (distSq > SLAP_RADIUS * SLAP_RADIUS) {
-			return result;
-		}
+            if (distSq <= SLAP_RADIUS * SLAP_RADIUS) {
+                var dist = Math.sqrt(distSq);
 
-		var dist = Math.sqrt(distSq);
-		dy /= dist;
-		dx /= dist;
+                result.collided = true;
+                result.power = 1;
+                result.normalX = ball.x - x;
+                result.normalY = ball.y - y;
 
-		result.collided = true;
-		result.power = 1;
-		result.normalX = dx;
-		result.normalY = dy;
+                result.normalX /= dist;
+                result.normalY /= dist;
 
-		canHit = false; // can't hit again until the next slap
+                canHit = false; // can't hit again until the next slap
+            }
+        }
 
-		return result;
-	}
+        return result;
+    }
+
+    function getSquareDistance(x0:Float, y0:Float, x1:Float, y1:Float):Float {
+        var dx = x1 - x0;
+        var dy = y1 - y0;
+        return dx * dx + dy * dy;
+    }
 }
