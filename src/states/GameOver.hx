@@ -1,5 +1,8 @@
 package states;
 
+/**
+ * The "game over" screen state.
+ */
 class GameOver extends State {
 	var logWindow:GameLogWindow;
 

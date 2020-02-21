@@ -1,5 +1,8 @@
+/**
+ * Applies a subtle vignette effect on the screen.
+ */
 class VignetteShader extends h3d.shader.ScreenShader {
-	static var SRC = {
+	static var SRC:String = {
 		@param var texture:Sampler2D;
 		function fragment() {
 			var uv = input.uv;

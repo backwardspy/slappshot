@@ -1,13 +1,24 @@
+/**
+ * The heaps app containing the game.
+ */
 class Main extends hxd.App {
-	var states = new StateManager();
+	var states:StateManager;
 
-	override function init() {
+	function setupTracing() {
 		// we do this early to capture as many traces as possible
 		var originalTrace = haxe.Log.trace;
-		haxe.Log.trace = function(v:Dynamic, ?infos:haxe.PosInfos) {
+
+		@SuppressWarnings("checkstyle:Dynamic")
+		function newTrace(v:Dynamic, ?infos:haxe.PosInfos) {
 			originalTrace(v, infos);
 			GameLog.add(haxe.Log.formatOutput(v, infos));
 		}
+
+		haxe.Log.trace = newTrace;
+	}
+
+	override function init() {
+		setupTracing();
 
 		Input.init();
 
@@ -17,13 +28,14 @@ class Main extends hxd.App {
 		hxd.Res.initEmbed();
 		trace("intialised resource system");
 
-		trace("pushing game state...");
-		states.addHook((state:State) -> if (state != null) setScene(state));
+		states = new StateManager();
+
+		states.addHook(state -> if (state != null) setScene(state));
 		states.push(new states.Game());
 	}
 
 	override function update(dt:Float) {
-		states.top().update(dt);
+		states.update(dt);
 	}
 
 	static function main() {

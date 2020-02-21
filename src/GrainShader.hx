@@ -1,5 +1,8 @@
+/**
+ * Applies a noisy grain effect to the screen.
+ */
 class GrainShader extends h3d.shader.ScreenShader {
-	static var SRC = {
+	static var SRC:String = {
 		@param var time:Float;
 		@param var texture:Sampler2D;
 		function fragment() {
