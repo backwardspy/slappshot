@@ -204,7 +204,7 @@
         {
             "type": "Indentation",
             "props": {
-                "character": "tab",
+                "character": "    ",
                 "ignoreConditionals": false,
                 "ignoreComments": true,
                 "wrapPolicy": "larger",
@@ -214,7 +214,7 @@
         {
             "type": "IndentationCharacter",
             "props": {
-                "character": "tab",
+                "character": "space",
                 "ignorePattern": "^$"
             }
         },

@@ -57,7 +57,7 @@ class Input {
     }
 
     function onPad(pad:hxd.Pad) {
-        trace('pad connected: ${pad}');
+        trace('pad #${pad.index} connected');
         pads[pad.index] = pad;
         setupAxisMap(pad);
         setupButtonMap(pad);

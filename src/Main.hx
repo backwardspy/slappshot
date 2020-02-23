@@ -34,7 +34,7 @@ class Main extends hxd.App {
         states = new StateManager();
 
         states.addHook(state -> if (state != null) setScene(state));
-        states.push(new states.Game());
+        states.push(new states.PreGame());
     }
 
     override function update(dt:Float) {

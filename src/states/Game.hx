@@ -167,14 +167,14 @@ class Game extends State {
                 trace('left arm reduced to ${leftArm.lives} lives');
                 if (died) {
                     trace("left arm died!");
-                    states.replace(new states.GameOver(right));
+                    states.replace(new GameOver(right));
                 }
             case right:
                 var died = rightArm.hurt();
                 trace('right arm reduced to ${rightArm.lives} lives');
                 if (died) {
                     trace("right arm died!");
-                    states.replace(new states.GameOver(left));
+                    states.replace(new GameOver(left));
                 }
         }
     }
