@@ -29,10 +29,11 @@ class Game extends State {
     static inline final BALL_INITIAL_X_MUL:Float = 0.25;
     static inline final BALL_INITIAL_Y_MUL:Float = 0.5;
 
+    static inline final MAX_PLAYERS:Int = 4;
+
     var grid:WarpGrid;
 
-    var leftArm:Arm;
-    var rightArm:Arm;
+    var players:haxe.ds.Vector<Player>;
 
     var slapSounds:Array<hxd.res.Sound>;
 
@@ -61,11 +62,17 @@ class Game extends State {
 
         grid = new WarpGrid(hxd.Res.graphics.backdrop_castle.toTile(), this);
 
-        leftArm = new Arm(0, height / 2, hxd.Res.graphics.arm_male_shoulder.toTile(), hxd.Res.graphics.arm_male_elbow.toTile(),
+        var leftArm = new Arm(0, height / 2, hxd.Res.graphics.arm_male_shoulder.toTile(), hxd.Res.graphics.arm_male_elbow.toTile(),
             hxd.Res.graphics.arm_male_wrist.toTile(), this);
-        rightArm = new Arm(width, height / 2, hxd.Res.graphics.arm_male_shoulder.toTile(), hxd.Res.graphics.arm_male_elbow.toTile(),
+
+        var rightArm = new Arm(width, height / 2, hxd.Res.graphics.arm_male_shoulder.toTile(), hxd.Res.graphics.arm_male_elbow.toTile(),
             hxd.Res.graphics.arm_male_wrist.toTile(), this, true);
         rightArm.setRotation(Math.PI);
+
+        // the last two players are left empty for now...
+        players = new haxe.ds.Vector(MAX_PLAYERS);
+        players[0] = {side: Side.left, arm: leftArm, padIndex: 0};
+        players[1] = {side: Side.right, arm: rightArm, padIndex: 1};
 
         ball = new Ball(width * BALL_INITIAL_X_MUL, height * BALL_INITIAL_Y_MUL, hxd.Res.graphics.ball_eye.toTile(), this);
 
@@ -91,22 +98,15 @@ class Game extends State {
         var lastHit:SlapResult = null;
         var lastHitSide:Side = null;
 
-        var leftFrozen = hitstop.active && hitstop.side == left;
-        var rightFrozen = hitstop.active && hitstop.side == right;
-
-        if (!leftFrozen) {
-            var hit = updateArm(leftArm, left, dt);
-            if (hit.collided) {
-                lastHit = hit;
-                lastHitSide = left;
+        for (ply in players) {
+            if (ply == null || (hitstop.active && hitstop.side == ply.side)) {
+                continue;
             }
-        }
 
-        if (!rightFrozen) {
-            var hit = updateArm(rightArm, right, dt);
+            var hit = updatePlayer(ply, dt);
             if (hit.collided) {
                 lastHit = hit;
-                lastHitSide = right;
+                lastHitSide = ply.side;
             }
         }
 
@@ -114,7 +114,12 @@ class Game extends State {
         if (!hitstop.active && lastHit == null) {
             var result = ball.bounce(0, 0, width, height);
             if (result.hitSide) {
-                hurtArm(result.side);
+                switch (result.side) {
+                    case left:
+                        hurtPlayer(players[0]);
+                    case right:
+                        hurtPlayer(players[1]);
+                }
             }
             ball.update(dt);
         }
@@ -149,10 +154,10 @@ class Game extends State {
         grainShader.time = Sys.time();
     }
 
-    function updateArm(arm:Arm, side:Side, dt:Float):SlapResult {
-        doMovement(side);
-        arm.update(dt);
-        var hit = arm.collide(ball);
+    function updatePlayer(ply:Player, dt:Float):SlapResult {
+        doMovement(ply);
+        ply.arm.update(dt);
+        var hit = ply.arm.collide(ball);
         if (hit.collided) {
             ball.hit(hit.normalX, hit.normalY, hit.power);
             playSlapSound();
@@ -160,22 +165,16 @@ class Game extends State {
         return hit;
     }
 
-    function hurtArm(side:Side) {
-        switch (side) {
-            case left:
-                var died = leftArm.hurt();
-                trace('left arm reduced to ${leftArm.lives} lives');
-                if (died) {
-                    trace("left arm died!");
-                    states.replace(new GameOver(right));
-                }
-            case right:
-                var died = rightArm.hurt();
-                trace('right arm reduced to ${rightArm.lives} lives');
-                if (died) {
-                    trace("right arm died!");
-                    states.replace(new GameOver(left));
-                }
+    function hurtPlayer(ply:Player) {
+        var died = ply.arm.hurt();
+        trace('${ply.side} reduced to ${ply.arm.lives} lives');
+        if (died) {
+            trace('${ply.side} died!');
+            var otherSide:Side = switch (ply.side) {
+                case left: right;
+                case right: left;
+            }
+            states.replace(new GameOver(otherSide));
         }
     }
 
@@ -183,20 +182,21 @@ class Game extends State {
         slapSounds[rand.random(slapSounds.length)].play();
     }
 
-    function doMovement(side:Side) {
-        if (side == left) {
-            var yAxis = Input.getAxis(moveY, 0);
-            leftArm.setOffset(Input.getAxis(moveX, 0) * MAX_ARM_DEFLECTION_X, yAxis * height * ARM_DEFLECTION_Y_MUL);
-            leftArm.rotation = yAxis * ARM_ROTATION_MUL;
+    function doMovement(ply:Player) {
+        // temporary split here to give me an "ai" to play against.
+        if (ply.side == left) {
+            var yAxis = Input.getAxis(moveY, player(ply.padIndex));
+            ply.arm.setOffset(Input.getAxis(moveX, player(ply.padIndex)) * MAX_ARM_DEFLECTION_X, yAxis * height * ARM_DEFLECTION_Y_MUL);
+            ply.arm.rotation = yAxis * ARM_ROTATION_MUL;
 
-            if (Input.getButtonPressed(slap, 0)) {
-                leftArm.slap();
+            if (Input.getButtonPressed(slap, player(ply.padIndex))) {
+                ply.arm.slap();
             }
         } else {
-            rightArm.setOffset(0, Math.sin(Sys.time()) * height * ARM_DEFLECTION_Y_MUL);
+            ply.arm.setOffset(0, Math.sin(Sys.time()) * height * ARM_DEFLECTION_Y_MUL);
 
             if (ball.x > width * AI_SLAP_X_THRESHOLD_MUL) {
-                rightArm.slap();
+                ply.arm.slap();
             }
         }
     }

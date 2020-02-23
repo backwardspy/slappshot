@@ -8,6 +8,14 @@ enum Action {
 }
 
 /**
+ * Which pad to get input from.
+ */
+enum PadIndex {
+    anyone;
+    player(index:Int);
+}
+
+/**
  * A singleton class controlling game input.
  */
 class Input {
@@ -42,25 +50,33 @@ class Input {
         }
     }
 
-    function setupAxisMap(pad:hxd.Pad, padIndex:Int = -1) {
-        if (pad.connected) {
-            padIndex = pad.index;
-        }
+    function setupAxisMap(pad:hxd.Pad, padIndex:Int) {
         axisMaps[padIndex] = [moveX => () -> pad.xAxis, moveY => () -> pad.yAxis];
     }
 
-    function setupButtonMap(pad:hxd.Pad, padIndex:Int = -1) {
-        if (pad.connected) {
-            padIndex = pad.index;
-        }
+    function setupButtonMap(pad:hxd.Pad, padIndex:Int) {
         buttonMaps[padIndex] = [slap => pad.config.A];
     }
 
+    function getAvailablePadIndex():Int {
+        for (i in 0...MAX_PADS) {
+            if (!pads[i].connected) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     function onPad(pad:hxd.Pad) {
-        trace('pad #${pad.index} connected');
-        pads[pad.index] = pad;
-        setupAxisMap(pad);
-        setupButtonMap(pad);
+        var padIndex = getAvailablePadIndex();
+        if (padIndex < 0) {
+            trace("pad connected but no available indices");
+            return;
+        }
+        trace('pad connected and assigned to index $padIndex');
+        pads[padIndex] = pad;
+        setupAxisMap(pad, padIndex);
+        setupButtonMap(pad, padIndex);
     }
 
     /**
@@ -69,8 +85,30 @@ class Input {
      * @param padIndex The index of the pad to get the axis state from.
      * @return Float The axis value from -1 to 1.
      */
-    public static function getAxis(action:Action, padIndex:Int = 0):Float {
-        return instance.axisMaps[padIndex][action]();
+    public static function getAxis(action:Action, padIndex:PadIndex):Float {
+        switch (padIndex) {
+            case anyone:
+                trace("can't get axis without a specific pad index");
+                return 0.0;
+            case player(index):
+                return instance.axisMaps[index][action]();
+        }
+    }
+
+    static function getInputState(action:Action, padIndex:PadIndex, stateFunction:Int->Bool):Bool {
+        var state = false;
+        switch (padIndex) {
+            case anyone:
+                for (i in 0...MAX_PADS) {
+                    if (stateFunction(i)) {
+                        state = true;
+                        break;
+                    }
+                }
+            case player(index):
+                state = stateFunction(index);
+        }
+        return state;
     }
 
     /**
@@ -79,9 +117,12 @@ class Input {
      * @param padIndex The index of the pad to get the button state from.
      * @return Bool
      */
-    public static function getButtonDown(action:Action, padIndex:Int = 0):Bool {
-        var button = instance.buttonMaps[padIndex][action];
-        return instance.pads[padIndex].isDown(button);
+    public static function getButtonDown(action:Action, padIndex:PadIndex = anyone):Bool {
+        function isDown(index:Int):Bool {
+            var button = instance.buttonMaps[index][action];
+            return instance.pads[index].isDown(button);
+        }
+        return getInputState(action, padIndex, isDown);
     }
 
     /**
@@ -90,9 +131,12 @@ class Input {
      * @param padIndex The index of the pad to get the button state from.
      * @return Bool
      */
-    public static function getButtonPressed(action:Action, padIndex:Int = 0):Bool {
-        var button = instance.buttonMaps[padIndex][action];
-        return instance.pads[padIndex].isPressed(button);
+    public static function getButtonPressed(action:Action, padIndex:PadIndex = anyone):Bool {
+        function isDown(index:Int):Bool {
+            var button = instance.buttonMaps[index][action];
+            return instance.pads[index].isPressed(button);
+        }
+        return getInputState(action, padIndex, isDown);
     }
 
     /**
@@ -101,8 +145,11 @@ class Input {
      * @param padIndex The index of the pad to get the button state from.
      * @return Bool
      */
-    public static function getButtonReleased(action:Action, padIndex:Int = 0):Bool {
-        var button = instance.buttonMaps[padIndex][action];
-        return instance.pads[padIndex].isReleased(button);
+    public static function getButtonReleased(action:Action, padIndex:PadIndex = anyone):Bool {
+        function isDown(index:Int):Bool {
+            var button = instance.buttonMaps[index][action];
+            return instance.pads[index].isReleased(button);
+        }
+        return getInputState(action, padIndex, isDown);
     }
 }
