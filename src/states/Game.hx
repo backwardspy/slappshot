@@ -7,7 +7,7 @@ class Game extends State {
     static inline final SLAP_SOUNDS_COUNT:Int = 16;
 
     static inline final INITIAL_HITSTOP_TIME:Float = 0.0;
-    static inline final MAXIMUM_HITSTOP_TIME:Float = 0.05;
+    static inline final MAXIMUM_HITSTOP_TIME:Float = 0.1;
     static inline final HITSTOP_TIME_SPEEDMOD_DIV:Int = 10;
 
     static inline final GRID_POINT_STRENGTH_SPEEDMOD_MUL:Float = 0.3;
@@ -50,6 +50,8 @@ class Game extends State {
 
     var rand:hxd.Rand;
 
+    var particlesPool:Pool<h2d.Particles>;
+
     public function new() {
         trace("initialising game state...");
         super();
@@ -91,6 +93,8 @@ class Game extends State {
 
         rand = new hxd.Rand(Std.int(Sys.time()));
 
+        particlesPool = new Pool<h2d.Particles>();
+
         trace("game state initialised");
     }
 
@@ -127,13 +131,13 @@ class Game extends State {
         hitstopTime = Math.min(MAXIMUM_HITSTOP_TIME, Math.pow(ball.speedMod / HITSTOP_TIME_SPEEDMOD_DIV, 2));
 
         hitWasActive = hitstop.active;
-        if (lastHit != null) {
-            hitstop.init(hitstopTime, lastHitSide, lastHit);
-        }
+
         hitstop.update(dt);
 
-        // effects to run when a hitstop starts
-        if (hitstop.active && !hitWasActive) {
+        if (lastHit != null) {
+            hitstop.init(hitstopTime, lastHitSide, lastHit);
+
+            // effects to run when a hitstop starts
             grid.startWave(ball.x / width, ball.y / height, ball.speedMod * GRID_WAVE_STRENGTH_SPEEDMOD_MUL);
         }
 
@@ -202,7 +206,7 @@ class Game extends State {
     }
 
     function hitParticles(angle:Float) {
-        var p = new h2d.Particles(this);
+        var p = particlesPool.get(() -> new h2d.Particles(this));
         p.setPosition(ball.x, ball.y);
         p.rotation = angle - Math.PI / 2;
         var pg = new h2d.Particles.ParticleGroup(p);
@@ -219,7 +223,7 @@ class Game extends State {
         p.addGroup(pg);
 
         p.onEnd = function() {
-            p.remove();
+            particlesPool.release(p);
         }
     }
 }
