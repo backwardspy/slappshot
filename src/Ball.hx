@@ -13,10 +13,10 @@ class Ball extends h2d.Object {
     static inline final TRAIL_PARTICLE_EMIT_DISTANCE:Int = 10;
     static inline final TRAIL_PARTICLE_LIFE:Float = 0.2;
     static inline final TRAIL_PARTICLE_LIFE_RAND:Float = 0.5;
-    static inline final TRAIL_PARTICLE_SIZE:Float = 0.8;
-    static inline final TRAIL_PARTICLE_SIZE_RAND:Float = 0.2;
+    static inline final TRAIL_PARTICLE_SIZE:Float = 3;
+    static inline final TRAIL_PARTICLE_SIZE_RAND:Float = 0.5;
 
-    static inline final HIT_SPEEDMOD_POWER_MUL:Float = 0.1;
+    static inline final HIT_SPEEDMOD_POWER_MUL:Float = 0.15;
 
     var radius:Float;
 
@@ -52,6 +52,7 @@ class Ball extends h2d.Object {
         pg.lifeRand = TRAIL_PARTICLE_LIFE_RAND;
         pg.size = TRAIL_PARTICLE_SIZE;
         pg.sizeRand = TRAIL_PARTICLE_SIZE_RAND;
+        pg.rotInit = 1;
         p.addGroup(pg);
 
         new h2d.Bitmap(tile, this);
@@ -128,5 +129,8 @@ class Ball extends h2d.Object {
     public function update(dt:Float) {
         x += vx * dt;
         y += vy * dt;
+
+        scaleX = 1 + (speedMod - 1) / 20;
+        rotation = Math.atan2(vy, vx);
     }
 }

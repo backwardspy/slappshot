@@ -5,6 +5,7 @@ enum Action {
     moveX;
     moveY;
     slap;
+    start;
 }
 
 /**
@@ -55,7 +56,7 @@ class Input {
     }
 
     function setupButtonMap(pad:hxd.Pad, padIndex:Int) {
-        buttonMaps[padIndex] = [slap => pad.config.A];
+        buttonMaps[padIndex] = [slap => pad.config.A, start => pad.config.start];
     }
 
     function getAvailablePadIndex():Int {

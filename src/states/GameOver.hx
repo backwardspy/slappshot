@@ -10,7 +10,7 @@ class GameOver extends State {
         trace("initialising gameover state...");
         super();
         var text = new h2d.Text(hxd.res.DefaultFont.get(), this);
-        text.text = '$winningSide wins!\npress A to restart';
+        text.text = '$winningSide wins!\npush START to restart';
         text.textAlign = Center;
         text.setPosition(width / 2, height / 2);
 
@@ -22,7 +22,7 @@ class GameOver extends State {
     override function update(dt:Float) {
         logWindow.update(dt);
 
-        if (Input.getButtonPressed(slap)) {
+        if (Input.getButtonPressed(start)) {
             states.replace(new Game());
         }
     }

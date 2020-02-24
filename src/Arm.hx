@@ -5,7 +5,7 @@ class Arm extends h2d.Object {
     static inline final MAX_LIVES:Int = 3;
 
     static inline final HITZONE_ACTIVE_TIME:Float = 0.15;
-    static inline final SLAP_ANIM_LENGTH:Float = 0.3;
+    static inline final SLAP_COOLDOWN:Float = 0.3;
 
     static inline final SLAP_RADIUS:Float = 350.0;
 
@@ -71,15 +71,25 @@ class Arm extends h2d.Object {
     }
 
     /**
-     * Updates the arm.
-     * @param dt Delta time
+     * Update the slap animation of the arm. This is not affected by hitstops.
+     * @param dt Delta time.
      */
-    public function update(dt:Float) {
+    public function updateVisuals(dt:Float) {
         slapTween.update(dt);
         setBend(slapTween.value * 0.8);
+    }
 
+    /**
+     * Updates the arm.
+     * @param dt Delta time.
+     */
+    public function update(dt:Float) {
         if (hitZoneTimer > 0.0) {
             hitZoneTimer -= dt;
+
+            if (canHit && hitZoneTimer <= HITZONE_ACTIVE_TIME) {
+                canHit = false;
+            }
 
             if (hitZoneTimer < 0.0) {
                 hitZoneTimer = 0.0;
@@ -118,20 +128,20 @@ class Arm extends h2d.Object {
      * Swing the arm.
      */
     public function slap() {
-        if (slapTween.active) {
+        if (hitZoneTimer > 0) {
             return;
         }
 
         canHit = true;
-        hitZoneTimer = HITZONE_ACTIVE_TIME;
+        hitZoneTimer = SLAP_COOLDOWN;
 
         switch (this.slapDirection) {
             case up:
                 this.slapDirection = down;
-                slapTween.init(1, -1, SLAP_ANIM_LENGTH);
+                slapTween.init(1, -1, SLAP_COOLDOWN);
             case down:
                 this.slapDirection = up;
-                slapTween.init(-1, 1, SLAP_ANIM_LENGTH);
+                slapTween.init(-1, 1, SLAP_COOLDOWN);
         }
     }
 

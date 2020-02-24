@@ -10,7 +10,7 @@ class PreGame extends State {
         trace("initialising pregame state...");
         super();
         var text = new h2d.Text(hxd.res.DefaultFont.get(), this);
-        text.text = "press A to begin";
+        text.text = "push START to begin";
         text.textAlign = Center;
         text.setPosition(width / 2, height / 2);
 
@@ -22,7 +22,7 @@ class PreGame extends State {
     override function update(dt:Float) {
         logWindow.update(dt);
 
-        if (Input.getButtonPressed(slap)) {
+        if (Input.getButtonPressed(start)) {
             states.push(new Game());
         }
     }

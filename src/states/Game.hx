@@ -6,12 +6,12 @@ package states;
 class Game extends State {
     static inline final SLAP_SOUNDS_COUNT:Int = 16;
 
-    static inline final INITIAL_HITSTOP_TIME:Float = 0.0;
-    static inline final MAXIMUM_HITSTOP_TIME:Float = 0.1;
+    static inline final INITIAL_HITSTOP_TIME:Float = 0;
+    static inline final MAXIMUM_HITSTOP_TIME:Float = 0.5;
     static inline final HITSTOP_TIME_SPEEDMOD_DIV:Int = 10;
 
-    static inline final GRID_POINT_STRENGTH_SPEEDMOD_MUL:Float = 0.3;
-    static inline final GRID_WAVE_STRENGTH_SPEEDMOD_MUL:Float = 0.2;
+    static inline final GRID_POINT_STRENGTH_SPEEDMOD_MUL:Float = 0.5;
+    static inline final GRID_WAVE_STRENGTH_SPEEDMOD_MUL:Float = 0.5;
 
     static inline final MAX_ARM_DEFLECTION_X:Int = 50;
     static inline final ARM_DEFLECTION_Y_MUL:Float = 0.4;
@@ -19,12 +19,7 @@ class Game extends State {
 
     static inline final AI_SLAP_X_THRESHOLD_MUL:Float = 0.8;
 
-    static inline final HIT_MAX_PARTICLES:Int = 50;
     static inline final HIT_PARTICLE_SPEED_MUL:Float = 0.4;
-    static inline final HIT_PARTICLE_EMIT_SYNC:Float = 0.9;
-    static inline final HIT_PARTICLE_EMIT_ANGLE:Float = 0.1;
-    static inline final HIT_PARTICLE_EMIT_DISTANCE:Int = 50;
-    static inline final HIT_PARTICLE_LIFE:Float = 0.5;
 
     static inline final BALL_INITIAL_X_MUL:Float = 0.25;
     static inline final BALL_INITIAL_Y_MUL:Float = 0.5;
@@ -47,10 +42,12 @@ class Game extends State {
     var hitstopTime:Float;
 
     var grainShader:shaders.GrainShader;
+    var inversionSphereEffect:InversionSphereEffect;
+    var rotatingGlowEffect:RotatingGlowEffect;
+
+    var hitParticles:HitParticles;
 
     var rand:hxd.Rand;
-
-    var particlesPool:Pool<h2d.Particles>;
 
     public function new() {
         trace("initialising game state...");
@@ -76,6 +73,10 @@ class Game extends State {
         players[0] = {side: Side.left, arm: leftArm, padIndex: 0};
         players[1] = {side: Side.right, arm: rightArm, padIndex: 1};
 
+        rotatingGlowEffect = new RotatingGlowEffect(this);
+
+        hitParticles = new HitParticles(this);
+
         ball = new Ball(width * BALL_INITIAL_X_MUL, height * BALL_INITIAL_Y_MUL, hxd.Res.graphics.ball_eye.toTile(), this);
 
         logWindow = new GameLogWindow(this);
@@ -86,14 +87,15 @@ class Game extends State {
         hitstopTime = INITIAL_HITSTOP_TIME;
 
         grainShader = new shaders.GrainShader();
+        inversionSphereEffect = new InversionSphereEffect(width / height);
+
         filter = new h2d.filter.Group([
             new h2d.filter.Shader(grainShader),
-            new h2d.filter.Shader(new shaders.VignetteShader())
+            new h2d.filter.Shader(new shaders.VignetteShader()),
+            new h2d.filter.Shader(inversionSphereEffect.shader),
         ]);
 
         rand = new hxd.Rand(Std.int(Sys.time()));
-
-        particlesPool = new Pool<h2d.Particles>();
 
         trace("game state initialised");
     }
@@ -103,6 +105,10 @@ class Game extends State {
         var lastHitSide:Side = null;
 
         for (ply in players) {
+            if (ply != null) {
+                ply.arm.updateVisuals(dt);
+            }
+
             if (ply == null || (hitstop.active && hitstop.side == ply.side)) {
                 continue;
             }
@@ -117,6 +123,7 @@ class Game extends State {
         // we check lasthit to skip updating on the frame we hit the ball
         if (!hitstop.active && lastHit == null) {
             var result = ball.bounce(0, 0, width, height);
+
             if (result.hitSide) {
                 switch (result.side) {
                     case left:
@@ -127,35 +134,30 @@ class Game extends State {
             }
             ball.update(dt);
         }
-
-        hitstopTime = Math.min(MAXIMUM_HITSTOP_TIME, Math.pow(ball.speedMod / HITSTOP_TIME_SPEEDMOD_DIV, 2));
-
+        hitstopTime = Math.min(MAXIMUM_HITSTOP_TIME, INITIAL_HITSTOP_TIME + Math.pow(ball.speedMod / HITSTOP_TIME_SPEEDMOD_DIV, 2));
         hitWasActive = hitstop.active;
-
         hitstop.update(dt);
-
         if (lastHit != null) {
             hitstop.init(hitstopTime, lastHitSide, lastHit);
-
             // effects to run when a hitstop starts
-            grid.startWave(ball.x / width, ball.y / height, ball.speedMod * GRID_WAVE_STRENGTH_SPEEDMOD_MUL);
+            var effX = ball.x / width;
+            var effY = ball.y / height;
+            grid.startWave(effX, effY, ball.speedMod * GRID_WAVE_STRENGTH_SPEEDMOD_MUL);
+            inversionSphereEffect.collapse(effX, effY, hitstopTime);
+            rotatingGlowEffect.collapse(ball.x, ball.y, hitstopTime);
+            hitParticles.emit(ball.x, ball.y, ball.calculateSpeed() * HIT_PARTICLE_SPEED_MUL, Math.atan2(hitstop.hit.normalY, hitstop.hit.normalX));
         }
-
-        // effects to run when a hitstop ends
-        if (hitWasActive && !hitstop.active) {
-            hitParticles(Math.atan2(hitstop.hit.normalY, hitstop.hit.normalX));
-        }
-
-        updateShaders(dt);
-
+        updateEffects(dt);
         logWindow.update(dt);
     }
 
-    function updateShaders(dt:Float) {
+    function updateEffects(dt:Float) {
         grid.setPoint(ball.x / width, ball.y / height, ball.speedMod * GRID_POINT_STRENGTH_SPEEDMOD_MUL);
-        grid.update(dt);
-
         grainShader.time = Sys.time();
+
+        grid.update(dt);
+        inversionSphereEffect.update(dt);
+        rotatingGlowEffect.update(dt);
     }
 
     function updatePlayer(ply:Player, dt:Float):SlapResult {
@@ -197,33 +199,13 @@ class Game extends State {
                 ply.arm.slap();
             }
         } else {
-            ply.arm.setOffset(0, Math.sin(Sys.time()) * height * ARM_DEFLECTION_Y_MUL);
+            // ply.arm.setOffset(0, Math.sin(Sys.time() * 5) * height * ARM_DEFLECTION_Y_MUL);
+            var targetOffset = ball.y - height / 2;
+            ply.arm.setOffset(0, targetOffset * 0.8 + Math.sin(Sys.time() * 2) * height * 0.2);
 
             if (ball.x > width * AI_SLAP_X_THRESHOLD_MUL) {
                 ply.arm.slap();
             }
-        }
-    }
-
-    function hitParticles(angle:Float) {
-        var p = particlesPool.get(() -> new h2d.Particles(this));
-        p.setPosition(ball.x, ball.y);
-        p.rotation = angle - Math.PI / 2;
-        var pg = new h2d.Particles.ParticleGroup(p);
-        pg.texture = hxd.Res.graphics.diamond_particle.toTexture();
-        pg.emitLoop = false;
-        pg.nparts = HIT_MAX_PARTICLES;
-        pg.speed = ball.calculateSpeed() * HIT_PARTICLE_SPEED_MUL;
-        pg.speedRand = 1;
-        pg.emitSync = HIT_PARTICLE_EMIT_SYNC;
-        pg.emitMode = h2d.Particles.PartEmitMode.Cone;
-        pg.emitAngle = HIT_PARTICLE_EMIT_ANGLE;
-        pg.emitDist = HIT_PARTICLE_EMIT_DISTANCE;
-        pg.life = HIT_PARTICLE_LIFE;
-        p.addGroup(pg);
-
-        p.onEnd = function() {
-            particlesPool.release(p);
         }
     }
 }
