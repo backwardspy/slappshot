@@ -26,6 +26,10 @@ class Game extends State {
 
     static inline final MAX_PLAYERS:Int = 4;
 
+    static inline final SHAKE_MAGNITUDE:Float = 30;
+    static inline final HURT_SHAKE:Float = 0.5;
+    static inline final HIT_SHAKE_SPEEDMOD_MUL:Float = 0.05;
+
     var grid:WarpGrid;
 
     var players:haxe.ds.Vector<Player>;
@@ -48,6 +52,8 @@ class Game extends State {
     var hitParticles:HitParticles;
 
     var rand:hxd.Rand;
+
+    var shake:Float;
 
     public function new() {
         trace("initialising game state...");
@@ -97,6 +103,8 @@ class Game extends State {
 
         rand = new hxd.Rand(Std.int(Sys.time()));
 
+        shake = 0;
+
         trace("game state initialised");
     }
 
@@ -125,6 +133,7 @@ class Game extends State {
             var result = ball.bounce(0, 0, width, height);
 
             if (result.hitSide) {
+                shake = HURT_SHAKE;
                 switch (result.side) {
                     case left:
                         hurtPlayer(players[0]);
@@ -148,7 +157,20 @@ class Game extends State {
             hitParticles.emit(ball.x, ball.y, ball.calculateSpeed() * HIT_PARTICLE_SPEED_MUL, Math.atan2(hitstop.hit.normalY, hitstop.hit.normalX));
         }
         updateEffects(dt);
+        updateShake(dt);
         logWindow.update(dt);
+    }
+
+    function updateShake(dt:Float) {
+        var amount = shake * SHAKE_MAGNITUDE;
+        setPosition(-amount + 2 * amount * rand.rand(), -amount + 2 * amount * rand.rand());
+
+        if (shake > 0) {
+            shake -= dt;
+            if (shake < 0) {
+                shake = 0;
+            }
+        }
     }
 
     function updateEffects(dt:Float) {
@@ -167,6 +189,7 @@ class Game extends State {
         if (hit.collided) {
             ball.hit(hit.normalX, hit.normalY, hit.power);
             playSlapSound();
+            shake = ball.speedMod * HIT_SHAKE_SPEEDMOD_MUL;
         }
         return hit;
     }
@@ -199,7 +222,6 @@ class Game extends State {
                 ply.arm.slap();
             }
         } else {
-            // ply.arm.setOffset(0, Math.sin(Sys.time() * 5) * height * ARM_DEFLECTION_Y_MUL);
             var targetOffset = ball.y - height / 2;
             ply.arm.setOffset(0, targetOffset * 0.8 + Math.sin(Sys.time() * 2) * height * 0.2);
 
