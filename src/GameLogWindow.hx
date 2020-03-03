@@ -18,8 +18,6 @@ class GameLogWindow extends h2d.Object {
             text.setPosition(PADDING, scene.height - (i + 1) * LINE_HEIGHT - PADDING);
             texts.push(text);
         }
-
-        alpha = 0;
     }
 
     /**

@@ -4,6 +4,8 @@
 enum Action {
     moveX;
     moveY;
+    rotX;
+    rotY;
     slap;
     start;
 }
@@ -27,7 +29,10 @@ class Input {
     var axisMaps:Array<Map<Action, Void->Float>> = [for (_ in 0...MAX_PADS) null];
     var buttonMaps:Array<Map<Action, Int>> = [for (_ in 0...MAX_PADS) null];
 
-    static inline final MAX_PADS:Int = 4;
+    /**
+     * How many gamepads can be used concurrently.
+     */
+    public static inline final MAX_PADS:Int = 4;
 
     function new() {
         pads = [];
@@ -52,7 +57,12 @@ class Input {
     }
 
     function setupAxisMap(pad:hxd.Pad, padIndex:Int) {
-        axisMaps[padIndex] = [moveX => () -> pad.xAxis, moveY => () -> pad.yAxis];
+        axisMaps[padIndex] = [
+            moveX => () -> pad.xAxis,
+            moveY => () -> pad.yAxis,
+            rotX => () -> pad.values[pad.config.ranalogX],
+            rotY => () -> pad.values[pad.config.ranalogY]
+        ];
     }
 
     function setupButtonMap(pad:hxd.Pad, padIndex:Int) {
@@ -78,6 +88,20 @@ class Input {
         pads[padIndex] = pad;
         setupAxisMap(pad, padIndex);
         setupButtonMap(pad, padIndex);
+    }
+
+    public static function isPadConnected(padIndex:PadIndex):Bool {
+        switch (padIndex) {
+            case anyone:
+                for (i in 0...MAX_PADS) {
+                    if (instance.pads[i].connected) {
+                        return true;
+                    }
+                }
+                return false;
+            case player(i):
+                return instance.pads[i].connected;
+        }
     }
 
     /**
