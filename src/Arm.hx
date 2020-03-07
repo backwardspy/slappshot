@@ -2,19 +2,12 @@
  * A player's arm. Used to slap the ball.
  */
 class Arm extends h2d.Object {
-    static inline final MAX_LIVES:Int = 3;
-
     static inline final HITZONE_ACTIVE_TIME:Float = 0.15;
     static inline final SLAP_COOLDOWN:Float = 0.3;
 
     static inline final SLAP_RADIUS:Float = 350.0;
 
     static inline final GFX_SCALE:Int = 2;
-
-    /**
-     * The number of lives left on this arm. Depleted by one on each missed ball.
-     */
-    public var lives(default, null):Int;
 
     var flipped:Bool;
 
@@ -53,6 +46,9 @@ class Arm extends h2d.Object {
         this.wrist.setPosition(105 + elbow.dx, 14 + elbow.dy);
 
         this.flipped = flipped;
+        if (this.flipped) {
+            setRotation(Math.PI);
+        }
 
         baseX = x;
         baseY = y;
@@ -66,8 +62,6 @@ class Arm extends h2d.Object {
         slapTween = new Tween();
         slapDirection = up;
         setBend(1);
-
-        lives = MAX_LIVES;
     }
 
     /**
@@ -143,14 +137,6 @@ class Arm extends h2d.Object {
                 this.slapDirection = up;
                 slapTween.init(-1, 1, SLAP_COOLDOWN);
         }
-    }
-
-    /**
-     * Reduce the arm's lives by one.
-     * @return Bool Whether the arm died or not.
-     */
-    public function hurt():Bool {
-        return --lives <= 0;
     }
 
     /**

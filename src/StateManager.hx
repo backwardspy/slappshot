@@ -1,5 +1,5 @@
 /**
- * Function call after changing State.
+ * Function to call after changing State.
  */
 typedef StateChangeHook = (state:State) -> Void;
 

@@ -23,6 +23,7 @@ class Main extends hxd.App {
     override function init() {
         setupTracing();
 
+        PlayerManager.init();
         Input.init();
 
         s2d.scaleMode = h2d.Scene.ScaleMode.LetterBox(RES_X, RES_Y);
@@ -38,6 +39,7 @@ class Main extends hxd.App {
     }
 
     override function update(dt:Float) {
+        Input.update(dt);
         states.update(dt);
     }
 

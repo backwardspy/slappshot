@@ -19,6 +19,11 @@ enum PadIndex {
 }
 
 /**
+ * Function to call after a player connects or disconnects.
+ */
+typedef PlayerConnectedHook = (ply:Player) -> Void;
+
+/**
  * A singleton class controlling game input.
  */
 class Input {
@@ -26,18 +31,18 @@ class Input {
 
     var pads:Array<hxd.Pad>;
 
-    var axisMaps:Array<Map<Action, Void->Float>> = [for (_ in 0...MAX_PADS) null];
-    var buttonMaps:Array<Map<Action, Int>> = [for (_ in 0...MAX_PADS) null];
+    var axisMaps:Array<Map<Action, Void->Float>> = [for (_ in 0...PlayerManager.MAX_PLAYERS) null];
+    var buttonMaps:Array<Map<Action, Int>> = [for (_ in 0...PlayerManager.MAX_PLAYERS) null];
 
-    /**
-     * How many gamepads can be used concurrently.
-     */
-    public static inline final MAX_PADS:Int = 4;
+    var playerConnectedHooks:Array<PlayerConnectedHook>;
+    var playerDisconnectedHooks:Array<PlayerConnectedHook>;
 
     function new() {
         pads = [];
+        playerConnectedHooks = [];
+        playerDisconnectedHooks = [];
         trace("initialising input system...");
-        for (i in 0...MAX_PADS) {
+        for (i in 0...PlayerManager.MAX_PLAYERS) {
             var pad = hxd.Pad.createDummy();
             pads.push(pad);
             setupAxisMap(pad, i);
@@ -70,7 +75,7 @@ class Input {
     }
 
     function getAvailablePadIndex():Int {
-        for (i in 0...MAX_PADS) {
+        for (i in 0...PlayerManager.MAX_PLAYERS) {
             if (!pads[i].connected) {
                 return i;
             }
@@ -84,24 +89,42 @@ class Input {
             trace("pad connected but no available indices");
             return;
         }
+
         trace('pad connected and assigned to index $padIndex');
         pads[padIndex] = pad;
         setupAxisMap(pad, padIndex);
         setupButtonMap(pad, padIndex);
+
+        var ply = PlayerManager.getPlayer(padIndex);
+        if (ply.active) {
+            throw 'the player at index $padIndex is already active! this should never happen...';
+        }
+        ply.active = true;
+
+        for (hook in playerConnectedHooks) {
+            hook(ply);
+        }
     }
 
+    /**
+     * Return whether a pad is connected or not.
+     * @param padIndex The index of the pad to check.
+     * @return Bool The pad's connection state.
+     */
     public static function isPadConnected(padIndex:PadIndex):Bool {
+        var connected = false;
         switch (padIndex) {
             case anyone:
-                for (i in 0...MAX_PADS) {
+                for (i in 0...PlayerManager.MAX_PLAYERS) {
                     if (instance.pads[i].connected) {
-                        return true;
+                        connected = true;
+                        break;
                     }
                 }
-                return false;
             case player(i):
-                return instance.pads[i].connected;
+                connected = instance.pads[i].connected;
         }
+        return connected;
     }
 
     /**
@@ -124,7 +147,7 @@ class Input {
         var state = false;
         switch (padIndex) {
             case anyone:
-                for (i in 0...MAX_PADS) {
+                for (i in 0...PlayerManager.MAX_PLAYERS) {
                     if (stateFunction(i)) {
                         state = true;
                         break;
@@ -176,5 +199,40 @@ class Input {
             return instance.pads[index].isReleased(button);
         }
         return getInputState(action, padIndex, isDown);
+    }
+
+    /**
+     * Register a hook to trigger when a player connects.
+     * @param hook The hook to register.
+     */
+    public static function addPlayerConnectedHook(hook:PlayerConnectedHook) {
+        trace("Triggering player connection hooks.");
+        instance.playerConnectedHooks.push(hook);
+    }
+
+    /**
+     * Register a hook to trigger when a player disconnects.
+     * @param hook The hook to register.
+     */
+    public static function addPlayerDisconnectedHook(hook:PlayerConnectedHook) {
+        trace("Triggering player disconnection hooks.");
+        instance.playerDisconnectedHooks.push(hook);
+    }
+
+    /**
+     * Updates the input manager, looking for disconnected pads.
+     * @param dt Delta time.
+     */
+    public static function update(dt:Float) {
+        for (i in 0...PlayerManager.MAX_PLAYERS) {
+            var ply = PlayerManager.getPlayer(i);
+            if (ply.active && !instance.pads[i].connected) {
+                trace('Player ${ply.padIndex} disconnected!');
+                ply.active = false;
+                for (hook in instance.playerDisconnectedHooks) {
+                    hook(ply);
+                }
+            }
+        }
     }
 }

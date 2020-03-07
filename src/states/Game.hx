@@ -24,15 +24,11 @@ class Game extends State {
     static inline final BALL_INITIAL_X_MUL:Float = 0.25;
     static inline final BALL_INITIAL_Y_MUL:Float = 0.5;
 
-    static inline final MAX_PLAYERS:Int = 4;
-
     static inline final SHAKE_MAGNITUDE:Float = 30;
     static inline final HURT_SHAKE:Float = 0.5;
     static inline final HIT_SHAKE_SPEEDMOD_MUL:Float = 0.05;
 
     var grid:WarpGrid;
-
-    var players:haxe.ds.Vector<Player>;
 
     var slapSounds:Array<hxd.res.Sound>;
 
@@ -67,17 +63,16 @@ class Game extends State {
 
         grid = new WarpGrid(hxd.Res.graphics.backdrop_castle.toTile(), this);
 
-        var leftArm = new Arm(0, height / 2, hxd.Res.graphics.arm_male_shoulder.toTile(), hxd.Res.graphics.arm_male_elbow.toTile(),
-            hxd.Res.graphics.arm_male_wrist.toTile(), this);
+        for (i in 0...PlayerManager.MAX_PLAYERS) {
+            var ply = PlayerManager.getPlayer(i);
+            if (!ply.active) {
+                continue;
+            }
 
-        var rightArm = new Arm(width, height / 2, hxd.Res.graphics.arm_male_shoulder.toTile(), hxd.Res.graphics.arm_male_elbow.toTile(),
-            hxd.Res.graphics.arm_male_wrist.toTile(), this, true);
-        rightArm.setRotation(Math.PI);
-
-        // the last two players are left empty for now...
-        players = new haxe.ds.Vector(MAX_PLAYERS);
-        players[0] = {side: Side.left, arm: leftArm, padIndex: 0};
-        players[1] = {side: Side.right, arm: rightArm, padIndex: 1};
+            var arm = new Arm(0, height / 2, hxd.Res.graphics.arm_male_shoulder.toTile(), hxd.Res.graphics.arm_male_elbow.toTile(),
+                hxd.Res.graphics.arm_male_wrist.toTile(), this, ply.side == right);
+            ply.arm = arm;
+        }
 
         rotatingGlowEffect = new RotatingGlowEffect(this);
 
@@ -112,12 +107,15 @@ class Game extends State {
         var lastHit:SlapResult = null;
         var lastHitSide:Side = null;
 
-        for (ply in players) {
-            if (ply != null) {
-                ply.arm.updateVisuals(dt);
+        for (i in 0...PlayerManager.MAX_PLAYERS) {
+            var ply = PlayerManager.getPlayer(i);
+            if (!ply.active) {
+                continue;
             }
 
-            if (ply == null || (hitstop.active && hitstop.side == ply.side)) {
+            ply.arm.updateVisuals(dt);
+
+            if (hitstop.active && hitstop.side == ply.side) {
                 continue;
             }
 
@@ -134,12 +132,7 @@ class Game extends State {
 
             if (result.hitSide) {
                 shake = HURT_SHAKE;
-                switch (result.side) {
-                    case left:
-                        hurtPlayer(players[0]);
-                    case right:
-                        hurtPlayer(players[1]);
-                }
+                hurtSide(result.side);
             }
             ball.update(dt);
         }
@@ -194,17 +187,12 @@ class Game extends State {
         return hit;
     }
 
-    function hurtPlayer(ply:Player) {
-        var died = ply.arm.hurt();
-        trace('${ply.side} reduced to ${ply.arm.lives} lives');
-        if (died) {
-            trace('${ply.side} died!');
-            var otherSide:Side = switch (ply.side) {
-                case left: right;
-                case right: left;
-            }
-            states.replace(new GameOver(otherSide));
-        }
+    function hurtSide(side:Side) {
+        /**
+         * 1. reduce side's lives
+         * 2. if lives > 0 return
+         * 3. replace state with gameover
+         */
     }
 
     function playSlapSound() {

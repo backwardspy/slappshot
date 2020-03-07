@@ -3,6 +3,7 @@
  */
 class GamepadGizmo extends h2d.Object {
     var sprite:h2d.Bitmap;
+    var text:h2d.Text;
 
     var offsetX:Float;
     var offsetY:Float;
@@ -24,6 +25,10 @@ class GamepadGizmo extends h2d.Object {
 
         sprite = new h2d.Bitmap(tile, this);
 
+        text = new h2d.Text(hxd.res.DefaultFont.get(), sprite);
+        text.textAlign = Center;
+        text.setPosition(0, -100);
+
         setPosition(x, y);
     }
 
@@ -37,8 +42,29 @@ class GamepadGizmo extends h2d.Object {
         offsetY = y;
     }
 
+    /**
+     * Set the angle of this gizmo.
+     * @param a The angle in radians.
+     */
     public function setAngle(a:Float) {
         angle = a;
+    }
+
+    /**
+     * Set the colour tint of this gizmo.
+     * @param colour The colour to tint this gizmo.
+     */
+    public function setTint(colour:Int) {
+        colour |= 0xFF000000; // force full alpha
+        sprite.color.setColor(colour);
+    }
+
+    /**
+     * Set the string displayed above the gizmo.
+     * @param textString The text string to display.
+     */
+    public function setText(textString:String) {
+        text.text = textString;
     }
 
     /**
