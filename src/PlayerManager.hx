@@ -9,6 +9,21 @@ class PlayerManager {
 
     static var instance:PlayerManager;
 
+    /**
+     * Count the number of active players.
+     */
+    public static var numActivePlayers(get, null):Int;
+
+    static function get_numActivePlayers():Int {
+        return [
+            for (i in 0...MAX_PLAYERS) {
+                if (getPlayer(i).active) {
+                    i;
+                }
+            }
+        ].length;
+    }
+
     var players:Array<Player>;
 
     function new() {
