@@ -226,6 +226,9 @@ class Input {
     public static function update(dt:Float) {
         for (i in 0...PlayerManager.MAX_PLAYERS) {
             var ply = PlayerManager.getPlayer(i);
+            if (ply == PlayerManager.dai) {
+                continue;
+            }
             if (ply.active && !instance.pads[i].connected) {
                 trace('Player ${ply.padIndex} disconnected!');
                 ply.active = false;

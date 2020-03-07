@@ -7,6 +7,11 @@ class PlayerManager {
      */
     public static inline final MAX_PLAYERS:Int = 4;
 
+    /**
+     * The index of Dai in the players array.
+     */
+    public static inline final DAI_INDEX:Int = 1;
+
     static var instance:PlayerManager;
 
     /**
@@ -24,12 +29,63 @@ class PlayerManager {
         ].length;
     }
 
+    /**
+     * Debug AI player. Only present when player 1 is the sole active player.
+     */
+    public static var dai(default, null):Player;
+
     var players:Array<Player>;
 
     function new() {
         players = [];
         for (i in 0...MAX_PLAYERS) {
-            addPlayer(i);
+            setupPlayer(i);
+        }
+        setupDAI();
+    }
+
+    static function setupDAI() {
+        if (dai != null) {
+            return;
+        }
+
+        dai = {
+            active: true,
+            ready: true,
+            gizmo: null,
+            side: right,
+            arm: null,
+            padIndex: DAI_INDEX,
+        };
+    }
+
+    function setupPlayer(index:Int) {
+        checkIndex(index);
+        players[index] = {
+            active: false,
+            ready: false,
+            gizmo: null,
+            side: if (index % 2 == 0) left else right,
+            arm: null,
+            padIndex: index,
+        };
+    }
+
+    /**
+     * Put Dai into the players array.
+     */
+    public static function addDai() {
+        if (instance.players[DAI_INDEX] != dai) {
+            instance.players[DAI_INDEX] = dai;
+        }
+    }
+
+    /**
+     * Remove Dai from the players array.
+     */
+    public static function removeDai() {
+        if (instance.players[DAI_INDEX] == dai) {
+            instance.setupPlayer(DAI_INDEX);
         }
     }
 
@@ -55,18 +111,6 @@ class PlayerManager {
     static function checkIndex(index:Int) {
         if (index < 0 || index > MAX_PLAYERS) {
             throw "index out of bounds";
-        }
-    }
-
-    function addPlayer(index:Int) {
-        checkIndex(index);
-        players[index] = {
-            active: false,
-            ready: false,
-            gizmo: null,
-            side: if (index % 2 == 0) left else right,
-            arm: null,
-            padIndex: index
         }
     }
 }

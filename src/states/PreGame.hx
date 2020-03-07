@@ -4,6 +4,11 @@ package states;
  * The pre-game screen state.
  */
 class PreGame extends State {
+    static inline final HIDDEN_Y:Float = -10000;
+
+    static inline final READY_GIZMO_TINT:Int = 0x77FF77;
+    static inline final UNREADY_GIZMO_TINT:Int = 0xFFFFFF;
+
     var logWindow:GameLogWindow;
 
     var waitingTexts:Array<h2d.Text>;
@@ -21,13 +26,10 @@ class PreGame extends State {
             var text = new h2d.Text(hxd.res.DefaultFont.get(), this);
             text.textAlign = Center;
             text.text = "waiting for a player to join...";
-            text.x = width / 5 + (i % 2) * 3 * width / 5;
+            text.x = getPlayerX(i);
             waitingTexts.push(text);
             showWaitingText(i);
         }
-
-        Input.addPlayerConnectedHook(onPlayerConnected);
-        Input.addPlayerDisconnectedHook(onPlayerDisconnected);
 
         for (i in 0...PlayerManager.MAX_PLAYERS) {
             var ply = PlayerManager.getPlayer(i);
@@ -36,37 +38,90 @@ class PreGame extends State {
             }
         }
 
+        Input.addPlayerConnectedHook(onPlayerConnected);
+        Input.addPlayerDisconnectedHook(onPlayerDisconnected);
+
         logWindow = new GameLogWindow(this);
 
         trace("pregame state initialised");
     }
 
-    function hideWaitingText(index:Int) {
-        waitingTexts[index].y = -1000;
+    function getPlayerX(index:Int):Float {
+        return width / 5 + (index % 2) * 3 * width / 5;
+    }
+
+    function getPlayerY(index:Int):Float {
+        return (Std.int(index / 2) + 1) * height / 3;
+    }
+
+    function isDaiRequired():Bool {
+        var required = PlayerManager.getPlayer(0).active;
+        if (!required) {
+            return required;
+        }
+        for (i in 1...PlayerManager.MAX_PLAYERS) {
+            var ply = PlayerManager.getPlayer(i);
+            if (ply != PlayerManager.dai && ply.active) {
+                required = false;
+                break;
+            }
+        }
+        return required;
+    }
+
+    function updateDai() {
+        if (isDaiRequired()) {
+            PlayerManager.addDai();
+            onPlayerConnected(PlayerManager.dai);
+        } else {
+            PlayerManager.removeDai();
+            onPlayerDisconnected(PlayerManager.dai);
+        }
     }
 
     function showWaitingText(index:Int) {
         waitingTexts[index].y = (Std.int(index / 2) + 1) * height / 3;
     }
 
+    function hideWaitingText(index:Int) {
+        waitingTexts[index].y = HIDDEN_Y;
+    }
+
     function onPlayerConnected(ply:Player) {
         if (ply.gizmo == null) {
-            var gizmo = new GamepadGizmo(width / 5 + (ply.padIndex % 2) * 3 * width / 5, (Std.int(ply.padIndex / 2) + 1) * height / 3, this);
+            var x = getPlayerX(ply.padIndex);
+            var y = getPlayerY(ply.padIndex);
+            var gizmo = if (ply == PlayerManager.dai) {
+                new DaiGamepadGizmo(x, y, this);
+            } else {
+                new GamepadGizmo(x, y, this);
+            }
             ply.gizmo = gizmo;
         }
-        unreadyPlayer(ply);
+
         hideWaitingText(ply.padIndex);
+
+        if (ply == PlayerManager.dai) {
+            readyPlayer(ply); // dai is always ready
+        } else {
+            unreadyPlayer(ply);
+            updateDai();
+        }
     }
 
     function onPlayerDisconnected(ply:Player) {
         ply.gizmo.remove();
         ply.gizmo = null;
         showWaitingText(ply.padIndex);
+
+        if (ply != PlayerManager.dai) {
+            updateDai();
+        }
     }
 
     function readyPlayer(ply:Player) {
         ply.ready = true;
-        ply.gizmo.setTint(0x77FF77);
+        ply.gizmo.setTint(READY_GIZMO_TINT);
         if (ply.padIndex == 0) {
             ply.gizmo.setText("waiting for all players to ready up...");
         } else {
@@ -89,7 +144,7 @@ class PreGame extends State {
 
     function unreadyPlayer(ply:Player) {
         ply.ready = false;
-        ply.gizmo.setTint(0xFFFFFF);
+        ply.gizmo.setTint(UNREADY_GIZMO_TINT);
         PlayerManager.getPlayer(0).gizmo.setText("waiting for all players to ready up...");
         ply.gizmo.setText("push A to ready up!");
     }

@@ -51,21 +51,6 @@ class Game extends State {
 
     var shake:Float;
 
-    var dai:Player;
-
-    function setupDAI() {
-        var arm = new Arm(width, height / 2, hxd.Res.graphics.arm_female_shoulder.toTile(), hxd.Res.graphics.arm_female_elbow.toTile(),
-            hxd.Res.graphics.arm_female_wrist.toTile(), this, true);
-        dai = {
-            active: true,
-            padIndex: 2,
-            arm: arm,
-            side: right,
-            gizmo: null,
-            ready: true
-        };
-    }
-
     public function new() {
         trace("initialising game state...");
         super();
@@ -87,11 +72,6 @@ class Game extends State {
             var arm = new Arm((i % 2) * width, height / 2, hxd.Res.graphics.arm_male_shoulder.toTile(), hxd.Res.graphics.arm_male_elbow.toTile(),
                 hxd.Res.graphics.arm_male_wrist.toTile(), this, ply.side == right);
             ply.arm = arm;
-        }
-
-        dai = null;
-        if (PlayerManager.numActivePlayers < 2) {
-            setupDAI();
         }
 
         rotatingGlowEffect = new RotatingGlowEffect(this);
@@ -128,7 +108,7 @@ class Game extends State {
         var lastHitSide:Side = null;
 
         for (i in 0...PlayerManager.MAX_PLAYERS) {
-            var ply = if (i == 2 && dai != null) dai else PlayerManager.getPlayer(i);
+            var ply = PlayerManager.getPlayer(i);
             if (!ply.active) {
                 continue;
             }
@@ -220,7 +200,7 @@ class Game extends State {
     }
 
     function doMovement(ply:Player) {
-        if (ply == dai) {
+        if (ply == PlayerManager.dai) {
             var targetOffset = ball.y - height / 2;
             ply.arm.setOffset(0, targetOffset * 0.8 + Math.sin(Sys.time() * 2) * height * 0.2);
 
