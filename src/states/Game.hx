@@ -28,6 +28,8 @@ class Game extends State {
     static inline final HURT_SHAKE:Float = 0.5;
     static inline final HIT_SHAKE_SPEEDMOD_MUL:Float = 0.05;
 
+    static inline final START_LIVES:Int = 3;
+
     var grid:WarpGrid;
 
     var slapSounds:Array<hxd.res.Sound>;
@@ -50,6 +52,8 @@ class Game extends State {
     var rand:hxd.Rand;
 
     var shake:Float;
+
+    var lives:Array<Int>;
 
     public function new() {
         trace("initialising game state...");
@@ -99,6 +103,8 @@ class Game extends State {
         rand = new hxd.Rand(Std.int(Sys.time()));
 
         shake = 0;
+
+        lives = [START_LIVES, START_LIVES];
 
         trace("game state initialised");
     }
@@ -188,11 +194,13 @@ class Game extends State {
     }
 
     function hurtSide(side:Side) {
-        /**
-         * 1. reduce side's lives
-         * 2. if lives > 0 return
-         * 3. replace state with gameover
-         */
+        var index = if (side == left) 0 else 1;
+        lives[index]--;
+        if (lives[index] > 0) {
+            return;
+        }
+        var other:Side = if (side == left) right else left;
+        states.replace(new states.GameOver(other));
     }
 
     function playSlapSound() {
