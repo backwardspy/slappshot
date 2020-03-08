@@ -128,14 +128,14 @@ class PreGame extends State {
             ply.gizmo.setText("");
         }
 
-        gameCanStart = true;
+        var ready = 0;
         for (i in 0...PlayerManager.MAX_PLAYERS) {
             var ply = PlayerManager.getPlayer(i);
-            if (ply.active && !ply.ready) {
-                gameCanStart = false;
-                break;
+            if (ply.ready) {
+                ready++;
             }
         }
+        gameCanStart = ready >= 2;
 
         if (gameCanStart) {
             PlayerManager.getPlayer(0).gizmo.setText("all players are ready! push START to begin.");
